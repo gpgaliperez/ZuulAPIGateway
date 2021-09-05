@@ -1,65 +1,107 @@
 package com.example.zuulapigateway.security;
 
-import org.springframework.context.annotation.Configuration;
+import org.keycloak.adapters.KeycloakConfigResolver;
+import org.keycloak.adapters.springboot.KeycloakSpringBootConfigResolver;
+import org.keycloak.adapters.springsecurity.KeycloakConfiguration;
+import org.keycloak.adapters.springsecurity.authentication.KeycloakAuthenticationProvider;
+import org.keycloak.adapters.springsecurity.config.KeycloakWebSecurityConfigurerAdapter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.authority.mapping.SimpleAuthorityMapper;
+import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 
-@Configuration
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+@KeycloakConfiguration
+@Import(KeycloakSpringBootConfigResolver.class)
+public class SecurityConfig extends KeycloakWebSecurityConfigurerAdapter {
+    /**
+     * Registers the KeycloakAuthenticationProvider with the authentication manager.
+     */
+    @Autowired
+    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+
+        KeycloakAuthenticationProvider keycloakAuthenticationProvider = keycloakAuthenticationProvider();
+        keycloakAuthenticationProvider.setGrantedAuthoritiesMapper(new SimpleAuthorityMapper());
+
+        auth.authenticationProvider(keycloakAuthenticationProvider);
+    }
+
+    /**
+     * Defines the session authentication strategy.
+     */
+    @Bean
     @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.cors()
-                .and()
+    protected SessionAuthenticationStrategy sessionAuthenticationStrategy() {
+        return new RegisterSessionAuthenticationStrategy(new SessionRegistryImpl());
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception
+    {
+        super.configure(http);
+        http
+                .csrf().disable()
                 .authorizeRequests()
-                .antMatchers(HttpMethod.GET, "/**")
-                .hasAuthority("administracion")
-                .antMatchers(HttpMethod.POST, "/**")
-                .hasAuthority("administracion")
-                .antMatchers(HttpMethod.DELETE, "/**")
-                .hasAuthority("administracion")
-                .antMatchers(HttpMethod.PUT, "/**")
-                .hasAuthority("administracion")
+                
+                //.antMatchers(HttpMethod.GET, "/dan-ms-cuentacorriente/api/cuenta/*")
+                //.hasRole("administracion")
+                
+                .antMatchers(HttpMethod.POST, "/*")
+                .hasRole("administracion")
+                .antMatchers(HttpMethod.DELETE, "/*")
+                .hasRole("administracion")
+                .antMatchers(HttpMethod.PUT, "/*")
+                .hasRole("administracion")
 
                 .antMatchers(HttpMethod.GET, "/api/cliente/**")
-                .hasAnyAuthority("lectura", "escritura")
+                .hasAnyRole("lectura", "escritura")
                 .antMatchers(HttpMethod.POST, "/api/cliente/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.PUT, "/api/cliente/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.DELETE, "/api/cliente/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
 
                 .antMatchers(HttpMethod.GET, "/api/pedido/**")
-                .hasAnyAuthority("lectura", "escritura")
+                .hasAnyRole("lectura", "escritura")
                 .antMatchers(HttpMethod.POST, "/api/pedido/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.PUT, "/api/pedido/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.DELETE, "/api/pedido/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
+
 
                 .antMatchers(HttpMethod.GET, "/api/cuenta/**")
-                .hasAnyAuthority("lectura", "escritura")
+                .hasAnyRole("lectura", "escritura")
                 .antMatchers(HttpMethod.POST, "/api/cuenta/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.PUT, "/api/cuenta/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.DELETE, "/api/cuenta/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
 
                 .antMatchers(HttpMethod.GET, "/api/productos/**")
-                .hasAnyAuthority("lectura", "escritura")
+                .hasAnyRole("lectura", "escritura")
                 .antMatchers(HttpMethod.POST, "/api/productos/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.PUT, "/api/productos/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
                 .antMatchers(HttpMethod.DELETE, "/api/productos/**")
-                .hasAnyAuthority("escritura")
+                .hasRole("escritura")
 
-                .anyRequest().authenticated()
-                .and().oauth2ResourceServer()
-                .jwt()
-                .jwtAuthenticationConverter(new CustomJwtAuthenticationConverter());
+                .anyRequest()
+                .permitAll();
+    }
+
+    @Bean
+    public KeycloakConfigResolver KeycloakConfigResolver() {
+        return new KeycloakSpringBootConfigResolver();
     }
 }
